@@ -1,0 +1,140 @@
+﻿@page "/owners"
+@using Microsoft.AspNetCore.Authorization
+@using Veterinary.Shared.Entities
+@using Veterinary.WEB.Repositories
+@using Veterinary.WEB.Shared
+@inject IRepository repository
+@inject SweetAlertService sweetAlertService
+@inject NavigationManager navigationManager
+
+
+
+@attribute [Authorize(Roles = "Admin")]
+
+<div class="card">
+    <div class="card-header">
+        <span>
+            <i class="bi bi-person" /> Owners
+            <a class="btn btn-primary btn-sm float-end" href="/owners/create"><i class="bi bi-plus-circle"/>New Owner</a>
+
+        </span>
+</div>
+
+    <div class="card-body">
+
+<GenericList MyList="Owners">
+
+    <Body>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Owners!)
+                {
+                    <tr>
+                        <td>
+                                    <a href="/owners/edit/@item.Id" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square" /> Editar</a>
+                                    <button @onclick=@(() => DeleteAsycn(item)) class="btn btn-sm btn-danger"><i class="bi bi-trash-fill"/> Borrar</button>
+                        </td>
+                        
+                        <td>
+                            @item.Document
+                        </td>
+                        <td>
+                            @item.FirstName
+                        </td>
+                        <td>
+                            @item.LastName
+                        </td>
+                        
+                            <td>
+                            @item.Address
+                        </td>
+                        <td>
+                            @item.FixedPhone
+                            </td>
+                        <td>
+                            @item.CellPhone
+                            </td>
+
+                        <td>
+                            @item.Address
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Body>
+</GenericList>
+    </div>
+</div>
+
+
+@code {
+    public List<Owner> Owners { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var responseHttp = await repository.GetAsync<List<Owner>>("api/owners");
+        if (responseHttp.Error)
+        {
+            var message = await responseHttp.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+        Owners = responseHttp.Response;
+    }
+
+   
+
+        private async Task DeleteAsycn(Owner owner)
+    {
+        var result = await sweetAlertService.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = $"¿Estas seguro de querer borrar el owner: {owner.FirstName}?",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true,
+            });
+        var confirm = string.IsNullOrEmpty(result.Value);
+        if (confirm)
+        {
+            return;
+        }
+
+        var responseHttp = await repository.DeleteAsync<Owner>($"api/owners/{owner.Id}");
+        if (responseHttp.Error)
+        {
+            if (responseHttp.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                   navigationManager.NavigateTo("owners");
+                }
+                else
+                {
+                    var mensajeError = await responseHttp.GetErrorMessageAsync();
+                    await sweetAlertService.FireAsync("Error", mensajeError, SweetAlertIcon.Error);
+                }
+                return;
+            }
+
+            await LoadAsync();
+            var toast = sweetAlertService.Mixin(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.BottomEnd,
+                ShowConfirmButton = true,
+                Timer = 3000
+            });
+            await toast.FireAsync(icon: SweetAlertIcon.Success, message: "Registro borrado con éxito.");
+        }
+    
+}

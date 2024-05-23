@@ -1,0 +1,78 @@
+﻿@page "/owners/edit/{Id:int}"
+@using System.Net
+@inject NavigationManager navigationManager
+@inject IRepository repository
+@inject SweetAlertService sweetAlertService
+
+@using Microsoft.AspNetCore.Authorization;
+
+
+
+<h3>Editar</h3>
+
+@if (owner is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <OwnerForm @ref="ownerForm"  Owner="owner" OnValidSubmit="Editar" ReturnAction="Return"/>
+
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private Owner owner;
+    private OwnerForm ownerForm;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var responseHttp = await repository.GetAsync<Owner>($"api/owners/{Id}");
+        if (responseHttp.Error)
+        {
+            if (responseHttp.HttpResponseMessage.StatusCode == HttpStatusCode.NotFound)
+            {
+                navigationManager.NavigateTo("/owners");
+            }
+            else
+            {
+                var messsage = await responseHttp.GetErrorMessageAsync();
+                await sweetAlertService.FireAsync("Error", messsage, SweetAlertIcon.Error);
+            }
+        }
+        else
+        {
+            owner = responseHttp.Response;
+        }
+    }
+
+
+    private async Task Editar()
+    {
+         var responseHttp = await repository.PutAsync("/api/owners", owner);
+        if (responseHttp.Error)
+        {
+            var message = await responseHttp.GetErrorMessageAsync();
+    await sweetAlertService.FireAsync("Error", message);
+            return;
+        }
+
+    Return();
+    var toast = sweetAlertService.Mixin(new SweetAlertOptions
+    {
+        Toast = true,
+        Position = SweetAlertPosition.BottomEnd,
+        ShowConfirmButton = true,
+        Timer = 3000
+    });
+    await toast.FireAsync(icon: SweetAlertIcon.Success, message: "Cambios guardados con éxito.");
+}
+
+        private void Return()
+        {
+        ownerForm!.FormularioPosteadoConExito = true;
+        navigationManager.NavigateTo("/owners");
+        }
+   
+}

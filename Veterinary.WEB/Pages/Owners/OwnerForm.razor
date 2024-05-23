@@ -1,0 +1,140 @@
+﻿@inject SweetAlertService swal
+
+@using Microsoft.AspNetCore.Authorization;
+
+
+
+<NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigation"></NavigationLock>
+
+
+<EditForm EditContext="editContext" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+
+
+    <div class="mb-3">
+        <label>Document:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.Document"></InputText>
+            <ValidationMessage For="@(() => Owner.Document)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Nombres:</label>
+        <div>
+            <InputText width="10" @bind-Value="@Owner.FirstName"></InputText>
+            <ValidationMessage For="@(() => Owner.FirstName)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Apellidos:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.LastName"></InputText>
+            <ValidationMessage For="@(() => Owner.LastName)" />
+        </div>
+    </div>
+
+
+    <div class="mb-3">
+        <label>Email:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.Email"></InputText>
+            <ValidationMessage For="@(() => Owner.Email)" />
+        </div>
+    </div>
+
+
+
+    <div class="mb-3">
+        <label>Teléfono:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.FixedPhone"></InputText>
+            <ValidationMessage For="@(() => Owner.FixedPhone)" />
+        </div>
+    </div>
+
+
+
+    <div class="mb-3">
+        <label>Móvil:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.CellPhone"></InputText>
+            <ValidationMessage For="@(() => Owner.CellPhone)" />
+        </div>
+    </div>
+
+
+
+    <div class="mb-3">
+        <label>Dirección:</label>
+        <div>
+            <InputText width="10" @bind-Value="Owner.Address"></InputText>
+            <ValidationMessage For="@(() => Owner.Address)" />
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit"><i class="bi bi-floppy" />Guardar Cambios</button>
+    <button class="btn btn-info" type="reset"><i class="bi bi-x-circle"/>Limpiar</button>
+    <button class="btn btn-success" onclick="ReturnAction"><i class="bi bi-arrow-left" />Regresar</button>
+</EditForm>
+
+@code {
+  
+    private EditContext editContext = null!;
+    protected override void OnInitialized()
+    {
+        editContext = new(Owner);
+    }
+
+
+
+    [Parameter]
+    [EditorRequired]
+    public Owner Owner { get; set; } = null!;
+
+    [Parameter]
+    [EditorRequired]
+    public EventCallback OnValidSubmit { get; set; }
+
+
+    [EditorRequired]
+    [Parameter]
+    public EventCallback ReturnAction { get; set; }
+
+    public bool FormularioPosteadoConExito { get; set; } = false;
+
+
+
+    private async Task OnBeforeInternalNavigation(LocationChangingContext context)
+    {
+        var formularioFueEditado = editContext.IsModified();
+
+        if (!formularioFueEditado)
+        {
+            return;
+        }
+
+        if (FormularioPosteadoConExito)
+        {
+            return;
+        }
+
+        var resultado = await swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = "¿Deseas abandonar la página y perder los cambios?",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true
+            });
+
+        var confirmado = !string.IsNullOrEmpty(resultado.Value);
+
+        if (confirmado)
+        {
+            return;
+        }
+
+        context.PreventNavigation();
+    }
+}
